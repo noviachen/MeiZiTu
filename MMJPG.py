@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 # 首页链接，也用来构成后面每个图集的链接
 index_url = 'http://www.mmjpg.com/'
 # 默认存储文件夹
-album_dir = 'C:\\Users\\<user>\\Documents\\IMG\\MMJPG\\'
+album_dir = 'C:\\Users\\novia\\Documents\\IMG\\MMJPG\\'
 
 session = requests.session()
 s = session.post(index_url)
@@ -42,25 +42,28 @@ def max_album(url):
 def pic_info(url):
     html = session.get(url).text
     bs_obj = BeautifulSoup(html, 'html.parser')
-
     pages = bs_obj.find('div', {'class': 'page'}).find_all('a')
     page_list = []
     for page in pages:
         page_list.append(page.get_text())
     max_pic = int(page_list[-2])
-
     pic_url = bs_obj.find('div', {'class': 'content'}).find('img')['src']
     pic_year = pic_url.replace('http://img.mmjpg.com/', '')
     pic_year = pic_year[:4]
     return [max_pic, pic_year]
 
 
+# 存储图片，不能用 urlretrieve 会显示盗链
+def save_pic(pic_file, pic_to_dir):
+    fo = open(pic_to_dir, 'wb')
+    fo.write(pic_file)
+    fo.close()
+
+
 # 获取所有图集的图片并下载到对应文件夹
 def get_album(start=1, end=max_album(index_url), timesleep=30):
-    print('开始采集...\n' + '-' * 50 + '\n')
+    print('开始采集 MMJPG ...\n' + '-' * 50 + '\n')
     for i in range(start, end + 1):
-        # 停顿几秒减轻服务器压力，同时也为了防止被封
-        time.sleep(timesleep)
         # 组成图集链接
         album_url = 'http://www.mmjpg.com/mm/' + str(i)
         # 图集标题
@@ -79,19 +82,21 @@ def get_album(start=1, end=max_album(index_url), timesleep=30):
             for j in range(1, pic_info(album_url)[0] + 1):
                 # 图片的链接地址
                 pic_url = 'http://img.mmjpg.com/' + pic_info(album_url)[1] + '/' + str(i) + '/' + str(j) + '.jpg'
+                # 图片下载目的完整路径
                 pic_file_name = album_dir_name + '\\' + str(j) + '.jpg'
-                # urlretrieve(url=pic_url, filename=pic_file_name)
+                # 获取到的图片文件
                 pic_file = session.get(pic_url, headers=get_heades(i, j)).content
-                fo = open(pic_file_name, 'wb')
-                fo.write(pic_file)
-                fo.close()
+                # 写入文件
+                save_pic(pic_file, pic_file_name)
         print('Done: ' + str(i) + ' ' + album_name + '\n')
+        # 停顿几秒减轻服务器压力，同时也为了防止被封
+        time.sleep(timesleep)
     print('\n' + '-' * 50 + '\n采集完成')
 
 
 # 使用说明：
-# get_album(index_url, <start>, <end=>, <timesleep>)
+# get_album(<start>, <end=>, <timesleep>)
 # <start>           起始编号，可不写，默认为 1
 # <end>             结束编号，可不写，自动获取最大编号
 # <timesleep>       暂停时间，可不写，减轻服务鸭梨，默认 30 秒
-get_album(start=207, end=208, timesleep=60)
+get_album(start=216, end=308, timesleep=30)
